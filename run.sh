@@ -36,6 +36,7 @@ cleanup() {
 trap cleanup EXIT INT
 
 echo "==> Starting React frontend on http://localhost:3000"
+export REACT_APP_API_PROXY="http://127.0.0.1:5001"
 pushd "$FRONTEND_DIR" >/dev/null
 npm start
 popd >/dev/null

@@ -1,0 +1,79 @@
+services:
+  db:
+    image: mysql:8.0
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --log-bin-trust-function-creators=1
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-collab_connect_db}
+      MYSQL_USER: ${MYSQL_USER:-collab_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-collab_user}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  db-init:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    command: ["python", "docker_init.py"]
+    environment:
+      MYSQL_HOST: db
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_USER: ${MYSQL_USER:-collab_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-collab_user}
+      MYSQL_DB: ${MYSQL_DATABASE:-collab_connect_db}
+      FLASK_DEBUG: ${FLASK_DEBUG:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    environment:
+      MYSQL_HOST: db
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_USER: ${MYSQL_USER:-collab_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-collab_user}
+      MYSQL_DB: ${MYSQL_DATABASE:-collab_connect_db}
+      HOST: 0.0.0.0
+      PORT: ${BACKEND_PORT:-5001}
+      FLASK_DEBUG: ${FLASK_DEBUG:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    ports:
+      - "${BACKEND_PORT:-5001}:5001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    restart: unless-stopped
+
+volumes:
+  mysql_data:

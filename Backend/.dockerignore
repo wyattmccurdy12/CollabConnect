@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+.venv
+databases
+logs
+node_modules
+frontend
+data/unprocessed
+data/legacy-data
+.git
+.gitignore

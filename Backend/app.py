@@ -34,16 +34,37 @@ app = Flask(__name__)
 CORS(app)  
 
 config = configparser.ConfigParser()
-config.read("config.ini")
+config_path = os.path.join(os.path.dirname(__file__), "config.ini")
+config.read(config_path)
 
-app.config["MYSQL_HOST"] = config.get("Database", "db_host", fallback="127.0.0.1")
-app.config["MYSQL_PORT"] = config.getint("Database", "db_port", fallback=3306)
-app.config["MYSQL_USER"] = config.get("Database", "db_user", fallback="root")
-app.config["MYSQL_PASSWORD"] = config.get("Database", "db_password", fallback="")
-app.config["MYSQL_DB"] = config.get("Database", "db_name", fallback="collab_connect_db")
+
+def _config_value(section, option, fallback=None):
+    env_map = {
+        ("Database", "db_host"): "MYSQL_HOST",
+        ("Database", "db_port"): "MYSQL_PORT",
+        ("Database", "db_user"): "MYSQL_USER",
+        ("Database", "db_password"): "MYSQL_PASSWORD",
+        ("Database", "db_name"): "MYSQL_DB",
+    }
+    env_key = env_map.get((section, option))
+    if env_key and env_key in os.environ:
+        return os.environ[env_key]
+    if section in config and option in config[section]:
+        return config.get(section, option, fallback=fallback)
+    return fallback
+
+app.config["MYSQL_HOST"] = _config_value("Database", "db_host", fallback="127.0.0.1")
+app.config["MYSQL_PORT"] = int(_config_value("Database", "db_port", fallback=3306))
+app.config["MYSQL_USER"] = _config_value("Database", "db_user", fallback="root")
+app.config["MYSQL_PASSWORD"] = _config_value("Database", "db_password", fallback="")
+app.config["MYSQL_DB"] = _config_value("Database", "db_name", fallback="collab_connect_db")
 app.config["MYSQL_CURSORCLASS"] = config.get(
     "Database", "db_cursorclass", fallback="DictCursor"
 )
+
+app.config["HOST"] = os.environ.get("HOST", "0.0.0.0")
+app.config["PORT"] = int(os.environ.get("PORT", "5001"))
+app.config["DEBUG"] = os.environ.get("FLASK_DEBUG", str(config.getboolean("General", "debug", fallback=True))).lower() in ("1", "true", "yes", "on")
 
 mysql = MySQL(app)
 
@@ -83,4 +104,4 @@ def health():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    app.run(host=app.config["HOST"], port=app.config["PORT"], debug=app.config["DEBUG"])

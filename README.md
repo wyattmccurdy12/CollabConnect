@@ -1,3 +1,20 @@
+## Docker Compose
+
+Use Compose for deployment-style startup:
+
+```bash
+cp .env.example .env
+docker compose -f compose.yaml up -d --build
+```
+
+Use the dev override for hot reload during local development:
+
+```bash
+cp .env.example .env
+docker compose -f compose.dev.yaml up --build
+```
+
+The production stack runs MySQL, a one-shot database init job, the Flask backend under gunicorn, and the frontend behind nginx. The dev stack keeps Flask and React in watch mode.
 # CollabConnect - Course Project for COS457
 
 CollabConnect is an application that facilitates collaboration and connection between academics and industry professionals. It addresses the gap between wanting or needing a collaborator for a project and finding a suitable collaborator. The app will provide users the opportunity to search a directory of potential collaborators and view attributes of professional peers that make them a good match for the proposed project. A user may also visualize graphs of connections between professionals for better decision-making and understanding.

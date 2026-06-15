@@ -1,0 +1,22 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  docker-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate compose config
+        run: docker compose -f compose.yaml config
+
+      - name: Build deployment images
+        run: docker compose -f compose.yaml build backend db-init frontend
+
+      - name: Run fast backend tests in container
+        run: docker run --rm collabconnect-backend pytest -q tests/test_fast_utils.py tests/test_route_coverage.py
