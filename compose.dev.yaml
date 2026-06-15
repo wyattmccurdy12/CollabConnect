@@ -5,14 +5,14 @@ services:
       - --default-authentication-plugin=mysql_native_password
       - --log-bin-trust-function-creators=1
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-collab_connect_db}
       MYSQL_USER: ${MYSQL_USER:-collab_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-collab_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpass"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -28,7 +28,7 @@ services:
       MYSQL_HOST: db
       MYSQL_PORT: ${MYSQL_PORT:-3306}
       MYSQL_USER: ${MYSQL_USER:-collab_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-collab_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DB: ${MYSQL_DATABASE:-collab_connect_db}
       FLASK_DEBUG: ${FLASK_DEBUG:-false}
     depends_on:
@@ -48,8 +48,10 @@ services:
       MYSQL_HOST: db
       MYSQL_PORT: ${MYSQL_PORT:-3306}
       MYSQL_USER: ${MYSQL_USER:-collab_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-collab_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DB: ${MYSQL_DATABASE:-collab_connect_db}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
     depends_on:
       db:
         condition: service_healthy

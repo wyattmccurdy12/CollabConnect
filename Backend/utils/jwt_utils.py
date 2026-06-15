@@ -7,11 +7,14 @@ Handles token generation, validation, and route protection.
 """
 
 import jwt
+import os
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from flask import request, jsonify
 
-SECRET_KEY = 'collabconnect-secret-key'
+SECRET_KEY = os.environ.get("JWT_SECRET")
+if not SECRET_KEY:
+    raise RuntimeError("JWT_SECRET environment variable must be set")
 TOKEN_EXPIRY_HOURS = 24
 
 def generate_access_token(user_id, email, person_id=None):

@@ -31,7 +31,10 @@ All default routes, such as health, are defined here.
 
 
 app = Flask(__name__)
-CORS(app)  
+allowed_origins = os.environ.get("CORS_ORIGINS", "http://localhost:3000")
+if isinstance(allowed_origins, str):
+    allowed_origins = [origin.strip() for origin in allowed_origins.split(",") if origin.strip()]
+CORS(app, origins=allowed_origins)
 
 config = configparser.ConfigParser()
 config_path = os.path.join(os.path.dirname(__file__), "config.ini")
