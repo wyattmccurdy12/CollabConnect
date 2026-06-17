@@ -24,9 +24,57 @@ git clone https://github.com/jabobas/CollabConnect.git
 cd CollabConnect
 ```
 
-### Step 2: Set Up MySQL Database & User
-Start MySQL and create a database and user for CollabConnect:
+### Step 2: Run with Docker Compose (Recommended)
+The repository includes two Compose files:
+- `compose.yaml` – production-style stack with backend behind nginx and one-shot DB init job
+- `compose.dev.yaml` – development stack with hot reload for React and the Flask backend
 
+1. Copy the example environment file:
+```bash
+cp .env.example .env
+```
+
+2. Start the production stack:
+```bash
+docker compose -f compose.yaml up -d --build
+```
+
+3. Start the development stack:
+```bash
+docker compose -f compose.dev.yaml up --build
+```
+
+4. Access the app:
+- Frontend: `http://localhost:3000`
+- Backend health: `http://localhost:5001/health`
+
+The Compose services are:
+- `db` — MySQL 8.0 container
+- `db-init` — one-shot init job that initializes schema, procedures, functions, and seed data
+- `backend` — Flask app served on port `5001`
+- `frontend` — React app served on port `3000` for dev or `80` inside the nginx container for production
+
+5. Stop the stack:
+```bash
+docker compose -f compose.yaml down
+```
+Or for dev:
+```bash
+docker compose -f compose.dev.yaml down
+```
+
+> **Note:** Docker Compose loads `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, `BACKEND_PORT`, `FRONTEND_PORT`, and `FLASK_DEBUG` from `.env`.
+
+### Step 3: Manual Local Setup (Alternative)
+If you prefer a local install instead of Docker, follow these steps:
+
+1. Clone the repository:
+```bash
+git clone https://github.com/jabobas/CollabConnect.git
+cd CollabConnect
+```
+
+2. Set up MySQL database and user:
 ```sql
 -- Log in to MySQL
 mysql -u root -p
@@ -41,13 +89,10 @@ FLUSH PRIVILEGES;
 EXIT;
 ```
 
-### Step 3: Configure Backend Database Connection
-Create `Backend/config.ini` from the example template:
-
+3. Configure backend database connection:
 ```bash
 cp Backend/config.ini.example Backend/config.ini
 ```
-
 Edit `Backend/config.ini` and update the credentials:
 ```ini
 [General]
@@ -63,119 +108,39 @@ db_port = 3306
 db_cursorclass = DictCursor
 ```
 
-### Step 4: Run Setup Script
-Execute the main setup script to initialize the database and install dependencies:
+The backend also supports overriding database values from environment variables:
+- `MYSQL_HOST`
+- `MYSQL_PORT`
+- `MYSQL_USER`
+- `MYSQL_PASSWORD`
+- `MYSQL_DB`
 
+4. Run the setup script:
 ```bash
 chmod +x setup.sh
 ./setup.sh
 ```
 
-The `setup.sh` script performs the following:
-- Creates Python virtual environment in `databases/` folder
-- Installs Python dependencies from `Backend/requirements.txt`
-- Installs Node.js dependencies via `npm install` in `frontend/`
-- Initializes database schema, tables, indexes, and stored procedures
-- Loads seed data from JSON files in `Backend/data/processed/`
-- Runs database validation checks
+The `setup.sh` script installs Python and frontend dependencies, then initializes the database schema and seed data.
 
-**What the setup script does:**
-```bash
-#!/usr/bin/env bash
-set -e
-
-ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
-VENV_DIR="$ROOT_DIR/databases"
-BACKEND_DIR="$ROOT_DIR/Backend"
-FRONTEND_DIR="$ROOT_DIR/frontend"
-
-# 1. Create and activate Python virtual environment
-if [[ ! -d "$VENV_DIR" ]]; then
-  python3 -m venv "$VENV_DIR"
-fi
-source "$VENV_DIR/bin/activate"
-
-# 2. Install Python dependencies
-pip install --upgrade pip
-pip install -r "$BACKEND_DIR/requirements.txt"
-
-# 3. Install frontend dependencies
-pushd "$FRONTEND_DIR" >/dev/null
-npm install
-popd >/dev/null
-
-# 4. Initialize database
-pushd "$BACKEND_DIR" >/dev/null
-python db_init.py
-popd >/dev/null
-```
-
-> **Note:** The setup script expects MySQL user and database to already exist with credentials configured in `Backend/config.ini`. It will not create the database user itself.
-
-### Step 5: Start the Application
-Once setup completes, start both backend and frontend services:
-
+5. Start the application locally:
 ```bash
 chmod +x run.sh
 ./run.sh
 ```
 
-The `run.sh` script:
-- Activates the Python virtual environment from `databases/`
-- Starts Flask backend server on `http://127.0.0.1:5000`
-- Starts React frontend on `http://localhost:3000`
-- Manages cleanup when you exit (Ctrl+C)
-
-**What the run script does:**
-```bash
-#!/usr/bin/env bash
-set -e
-
-ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
-VENV_DIR="$ROOT_DIR/databases"
-BACKEND_DIR="$ROOT_DIR/Backend"
-FRONTEND_DIR="$ROOT_DIR/frontend"
-
-source "$VENV_DIR/bin/activate"
-
-# Start Flask backend in background
-pushd "$BACKEND_DIR" >/dev/null
-"$VENV_DIR/bin/python" app.py &
-BACKEND_PID=$!
-popd >/dev/null
-
-# Setup cleanup on exit
-cleanup() {
-  echo "\n==> Stopping backend (PID $BACKEND_PID)"
-  kill "$BACKEND_PID" 2>/dev/null || true
-}
-trap cleanup EXIT INT
-
-# Start React frontend in foreground
-pushd "$FRONTEND_DIR" >/dev/null
-npm start
-popd >/dev/null
-```
-
-**Expected Output:**
-```
-==> Starting Flask backend on http://127.0.0.1:5000
-==> Starting React frontend on http://localhost:3000
-Compiled successfully!
-
-You can now view frontend in the browser.
-
-  Local:            http://localhost:3000
-  On Your Network:  http://192.168.x.x:3000
-```
+The local setup runs:
+- Flask backend on `http://127.0.0.1:5001`
+- React frontend on `http://localhost:3000`
 
 Open your browser to `http://localhost:3000` to access the application.
 
 ### Stopping the Application
-Press `Ctrl+C` in the terminal. The `run.sh` script will:
-1. Terminate the Flask backend process
-2. Terminate the React frontend process
-3. Clean up any remaining processes
+For Docker Compose:
+```bash
+docker compose -f compose.yaml down
+```
+For local manual mode, press `Ctrl+C` in the terminal running `./run.sh`.
 
 ### Database Initialization Details
 
@@ -254,7 +219,7 @@ If database already exists, it will skip schema creation and only verify tables 
 
 ### Base URL
 ```
-http://localhost:5000
+http://localhost:5001
 ```
 
 ### Authentication
@@ -1020,16 +985,16 @@ kill -9 <PID>
 ```
 
 **"Can't connect to backend"**
-- Ensure Flask is running on port 5000
+- Ensure Flask is running on port 5001
 - Check proxy setting in `frontend/package.json`
 - Verify CORS is enabled in `Backend/app.py`
 
 ### Backend Issues
 
-**Port 5000 already in use**
+**Port 5001 already in use**
 ```bash
-# Find process using port 5000
-lsof -i :5000
+# Find process using port 5001
+lsof -i :5001
 
 # Kill the process
 kill -9 <PID>
