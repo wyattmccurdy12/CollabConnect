@@ -193,3 +193,101 @@ def get_network():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@analytics_bp.route('/message-load/summary', methods=['GET'])
+def get_message_load_summary():
+    """Return minute-level message load aggregates for admin monitoring."""
+    from app import mysql
+
+    lookback_minutes = max(int(request.args.get('lookback_minutes', 60)), 1)
+    lookback_minutes = min(lookback_minutes, 24 * 60)
+
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                minute_bucket,
+                message_count,
+                total_payload_bytes,
+                updated_at
+            FROM MessageLoadMinute
+            WHERE minute_bucket >= (UTC_TIMESTAMP() - INTERVAL %s MINUTE)
+            ORDER BY minute_bucket ASC
+            """,
+            (lookback_minutes,),
+        )
+        rows = cursor.fetchall()
+
+        data = [
+            {
+                'minute_bucket': str(row['minute_bucket']),
+                'message_count': int(row['message_count']),
+                'total_payload_bytes': int(row['total_payload_bytes']),
+                'updated_at': str(row['updated_at']) if row.get('updated_at') else None,
+            }
+            for row in rows
+        ]
+
+        return jsonify({'success': True, 'data': data, 'count': len(data)})
+    except Exception as e:
+        log_error(f"Failed to fetch message load summary: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
+@analytics_bp.route('/message-load/senders', methods=['GET'])
+def get_message_load_by_sender():
+    """Return top senders by message volume for a lookback window."""
+    from app import mysql
+
+    lookback_minutes = max(int(request.args.get('lookback_minutes', 60)), 1)
+    lookback_minutes = min(lookback_minutes, 24 * 60)
+    limit = max(int(request.args.get('limit', 20)), 1)
+    limit = min(limit, 100)
+
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                mls.sender_user_id,
+                p.person_id,
+                p.person_name,
+                p.person_email,
+                SUM(mls.message_count) AS message_count
+            FROM MessageLoadSenderMinute mls
+            LEFT JOIN User u ON u.user_id = mls.sender_user_id
+            LEFT JOIN Person p ON p.person_id = u.person_id
+            WHERE mls.minute_bucket >= (UTC_TIMESTAMP() - INTERVAL %s MINUTE)
+            GROUP BY mls.sender_user_id, p.person_id, p.person_name, p.person_email
+            ORDER BY message_count DESC
+            LIMIT %s
+            """,
+            (lookback_minutes, limit),
+        )
+        rows = cursor.fetchall()
+
+        data = [
+            {
+                'sender_user_id': int(row['sender_user_id']),
+                'person_id': row.get('person_id'),
+                'person_name': row.get('person_name'),
+                'person_email': row.get('person_email'),
+                'message_count': int(row['message_count']),
+            }
+            for row in rows
+        ]
+
+        return jsonify({'success': True, 'data': data, 'count': len(data)})
+    except Exception as e:
+        log_error(f"Failed to fetch message load by sender: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()

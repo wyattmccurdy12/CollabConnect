@@ -1,5 +1,9 @@
 """Messaging routes for direct researcher-to-researcher conversations."""
 
+import json
+from datetime import datetime, timezone
+from uuid import uuid4
+
 from flask import Blueprint, jsonify, request
 
 from utils.jwt_utils import token_required
@@ -156,6 +160,22 @@ def _insert_message(cursor, conversation_id, sender_user_id, sender_person_id, b
     return message_id
 
 
+def _insert_outbox_event(cursor, event_type, aggregate_id, payload):
+    cursor.execute(
+        """
+        INSERT INTO MessageOutbox (id, aggregatetype, aggregateid, type, payload)
+        VALUES (%s, %s, %s, %s, %s)
+        """,
+        (
+            str(uuid4()),
+            "message",
+            str(aggregate_id),
+            event_type,
+            json.dumps(payload),
+        ),
+    )
+
+
 @messages_bp.route("/inbox", methods=["GET"])
 @token_required
 def get_inbox():
@@ -287,6 +307,22 @@ def create_or_send_message():
         message_payload = None
         if body:
             message_id = _insert_message(cursor, conversation_id, user_id, person_id, body)
+            simulation_run_id = request.headers.get("X-Simulation-Run-Id")
+            _insert_outbox_event(
+                cursor,
+                "message.sent.v1",
+                conversation_id,
+                {
+                    "event_time": datetime.now(timezone.utc).isoformat(),
+                    "message_id": message_id,
+                    "conversation_id": conversation_id,
+                    "sender_user_id": user_id,
+                    "sender_person_id": person_id,
+                    "payload_size_bytes": len(body.encode("utf-8")),
+                    "simulation_run_id": simulation_run_id,
+                    "source": "api",
+                },
+            )
             cursor.execute(
                 """
                 SELECT message_id, conversation_id, sender_user_id, sender_person_id, body,
@@ -449,6 +485,24 @@ def send_conversation_message(conversation_id):
             return jsonify({"status": "not_found", "message": "Conversation not found"}), 404
 
         message_id = _insert_message(cursor, conversation_id, user_id, person_id, body)
+
+        simulation_run_id = request.headers.get("X-Simulation-Run-Id")
+        _insert_outbox_event(
+            cursor,
+            "message.sent.v1",
+            conversation_id,
+            {
+                "event_time": datetime.now(timezone.utc).isoformat(),
+                "message_id": message_id,
+                "conversation_id": conversation_id,
+                "sender_user_id": user_id,
+                "sender_person_id": person_id,
+                "payload_size_bytes": len(body.encode("utf-8")),
+                "simulation_run_id": simulation_run_id,
+                "source": "api",
+            },
+        )
+
         cursor.execute(
             """
             SELECT message_id, conversation_id, sender_user_id, sender_person_id, body,
@@ -512,6 +566,23 @@ def mark_conversation_read(conversation_id):
             """,
             (conversation_id, user_id),
         )
+        updated_rows = int(getattr(cursor, "rowcount", 0) or 0)
+
+        if updated_rows > 0:
+            simulation_run_id = request.headers.get("X-Simulation-Run-Id")
+            _insert_outbox_event(
+                cursor,
+                "message.read.v1",
+                conversation_id,
+                {
+                    "event_time": datetime.now(timezone.utc).isoformat(),
+                    "conversation_id": conversation_id,
+                    "reader_user_id": user_id,
+                    "read_messages_count": int(updated_rows),
+                    "simulation_run_id": simulation_run_id,
+                    "source": "api",
+                },
+            )
         mysql.connection.commit()
 
         return jsonify({"status": "success", "message": "Conversation marked as read"}), 200

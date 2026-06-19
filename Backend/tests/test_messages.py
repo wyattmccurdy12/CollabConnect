@@ -5,12 +5,13 @@ from utils.jwt_utils import generate_access_token
 
 
 class DummyCursor:
-    def __init__(self, responses=None):
+    def __init__(self, responses=None, rowcount=1):
         self.responses = list(responses or [])
         self.executed = []
         self.callprocs = []
         self.closed = False
         self.lastrowid = 1001
+        self.rowcount = rowcount
 
     def execute(self, query, params=None):
         self.executed.append((query, params))

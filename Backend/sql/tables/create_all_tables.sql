@@ -171,3 +171,31 @@ CREATE TABLE Message (
         ON DELETE SET NULL
         ON UPDATE CASCADE
 );
+
+CREATE TABLE MessageOutbox (
+    id CHAR(36) PRIMARY KEY,
+    aggregatetype VARCHAR(100) NOT NULL,
+    aggregateid VARCHAR(100) NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    payload JSON NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE MessageLoadMinute (
+    minute_bucket DATETIME NOT NULL PRIMARY KEY,
+    message_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    total_payload_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE MessageLoadSenderMinute (
+    minute_bucket DATETIME NOT NULL,
+    sender_user_id BIGINT UNSIGNED NOT NULL,
+    message_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (minute_bucket, sender_user_id),
+    CONSTRAINT fk_message_load_sender_user
+        FOREIGN KEY (sender_user_id) REFERENCES User(user_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);

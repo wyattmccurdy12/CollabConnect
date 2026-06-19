@@ -15,6 +15,52 @@ docker compose -f compose.dev.yaml up --build
 ```
 
 The production stack runs MySQL, a one-shot database init job, the Flask backend under gunicorn, and the frontend behind nginx. The dev stack keeps Flask and React in watch mode.
+
+## Kafka Outbox + Message Load Tracking (Option 2)
+
+The dev stack now includes Apache Kafka, Debezium Kafka Connect, a connector bootstrap job, and a message metrics consumer.
+
+### Services
+
+- `kafka` + `zookeeper`: message broker for event streams
+- `kafka-connect`: Debezium Connect runtime
+- `kafka-connect-init`: registers the MySQL outbox connector on startup
+- `message-metrics-consumer`: consumes `collabconnect.outbox.message.sent.v1` and writes minute-level aggregates
+- `kafka-ui`: inspect topics/connectors at `http://localhost:8080`
+
+### Start stack
+
+```bash
+cp .env.example .env
+docker compose -f compose.dev.yaml up --build -d
+```
+
+### Seed dummy accounts
+
+```bash
+docker compose -f compose.dev.yaml exec -T backend \
+  python scripts/create_dummy_message_accounts.py --prefix simuser --count 50 --password SimPass1234
+```
+
+### Run load simulation
+
+```bash
+docker compose -f compose.dev.yaml exec -T backend \
+  python scripts/simulate_message_load.py --base-url http://backend:5001 --prefix simuser --count 50 --password SimPass1234 --total-messages 1000 --workers 10
+```
+
+The simulator prints `simulation_run_id`. The backend also forwards this ID using header `X-Simulation-Run-Id`, and it is persisted in outbox event payloads.
+
+### Admin load endpoints
+
+- `GET /api/analytics/message-load/summary?lookback_minutes=60`
+- `GET /api/analytics/message-load/senders?lookback_minutes=60&limit=20`
+
+### Event topic
+
+Debezium outbox routes message sent events into:
+
+- `collabconnect.outbox.message.sent.v1`
 # CollabConnect - Course Project for COS457
 
 CollabConnect is an application that facilitates collaboration and connection between academics and industry professionals. It addresses the gap between wanting or needing a collaborator for a project and finding a suitable collaborator. The app will provide users the opportunity to search a directory of potential collaborators and view attributes of professional peers that make them a good match for the proposed project. A user may also visualize graphs of connections between professionals for better decision-making and understanding.

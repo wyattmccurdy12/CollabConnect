@@ -14,3 +14,12 @@ ON Message(conversation_id, created_at DESC);
 
 CREATE INDEX idx_message_sender_created
 ON Message(sender_user_id, created_at DESC);
+
+CREATE INDEX idx_message_outbox_created
+ON MessageOutbox(created_at DESC);
+
+CREATE INDEX idx_message_outbox_type_created
+ON MessageOutbox(type, created_at DESC);
+
+CREATE INDEX idx_message_load_sender_minute
+ON MessageLoadSenderMinute(sender_user_id, minute_bucket DESC);
