@@ -19,6 +19,7 @@ import NetworkCheckIcon from "@mui/icons-material/NetworkCheck";
 import { Users } from "lucide-react";
 import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined';
 import { useLocation } from "react-router-dom";
 
 const Item = ({ title, to, icon, selected, setSelected }) => {
@@ -56,6 +57,7 @@ const Sidebar = () => {
       "/search": "Search Collaberators",
       "/projects": "Search Projects",
       "/connections": "Manage Connections",
+      "/messages": "Messages",
       "/": "Dashboard",
     };
 
@@ -218,6 +220,13 @@ const Sidebar = () => {
               title="Search Collaberators"
               to="/search"
               icon={<PersonSearchIcon />}
+              selected={selected}
+              setSelected={setSelected}
+            />
+            <Item
+              title="Messages"
+              to="/messages"
+              icon={<ForumOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
             />

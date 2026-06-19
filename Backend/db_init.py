@@ -180,6 +180,7 @@ def create_indexes():
         "./sql/indexes/belongsto_indexes.sql",
         "./sql/indexes/department_indexes.sql",
         "./sql/indexes/general_indexes.sql",
+        "./sql/indexes/messages_indexes.sql",
         "./sql/indexes/person_indexes.sql",
         "./sql/indexes/workedon_indexes.sql",
         "./sql/indexes/worksin_indexes.sql",

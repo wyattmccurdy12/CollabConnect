@@ -121,3 +121,53 @@ CREATE TABLE User (
     last_login TIMESTAMP NULL,
     FOREIGN KEY (person_id) REFERENCES Person(person_id) ON DELETE SET NULL
 );
+
+CREATE TABLE Conversation (
+    conversation_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    conversation_key VARCHAR(64) NOT NULL,
+    participant_a_user_id BIGINT UNSIGNED NOT NULL,
+    participant_b_user_id BIGINT UNSIGNED NOT NULL,
+    created_by_user_id BIGINT UNSIGNED NOT NULL,
+    last_message_id BIGINT UNSIGNED NULL,
+    last_message_preview VARCHAR(280) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_message_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_conversation_key (conversation_key),
+    CONSTRAINT fk_conversation_participant_a
+        FOREIGN KEY (participant_a_user_id) REFERENCES User(user_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT fk_conversation_participant_b
+        FOREIGN KEY (participant_b_user_id) REFERENCES User(user_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT fk_conversation_created_by
+        FOREIGN KEY (created_by_user_id) REFERENCES User(user_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+CREATE TABLE Message (
+    message_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    conversation_id BIGINT UNSIGNED NOT NULL,
+    sender_user_id BIGINT UNSIGNED NOT NULL,
+    sender_person_id BIGINT UNSIGNED NULL,
+    body TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    read_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL,
+    CONSTRAINT fk_message_conversation
+        FOREIGN KEY (conversation_id) REFERENCES Conversation(conversation_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT fk_message_sender_user
+        FOREIGN KEY (sender_user_id) REFERENCES User(user_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT fk_message_sender_person
+        FOREIGN KEY (sender_person_id) REFERENCES Person(person_id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+);

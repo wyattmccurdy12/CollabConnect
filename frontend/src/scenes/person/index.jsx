@@ -114,6 +114,10 @@ const Person = () => {
     await handleProjectAdded();
   };
 
+  const handleMessageProfile = () => {
+    navigate(`/messages?recipient=${id}`);
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
@@ -212,6 +216,27 @@ const Person = () => {
             }}
           >
             Edit Profile
+          </Button>
+        )}
+        {!isOwnProfile && personData.person_email && (
+          <Button
+            variant="contained"
+            startIcon={<Mail />}
+            onClick={handleMessageProfile}
+            sx={{
+              backgroundColor: colors.greenAccent[600],
+              color: colors.grey[900],
+              fontWeight: 600,
+              px: 3,
+              py: 1.5,
+              borderRadius: '8px',
+              ml: 2,
+              '&:hover': {
+                backgroundColor: colors.greenAccent[700]
+              }
+            }}
+          >
+            Message
           </Button>
         )}
       </Box>
