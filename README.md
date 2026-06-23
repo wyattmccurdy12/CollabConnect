@@ -1,66 +1,76 @@
-## Docker Compose
+## Setup & Development
 
-Use Compose for deployment-style startup:
+CollabConnect runs exclusively via Docker Compose. All services (MySQL, backend, frontend, Kafka) are containerized.
 
-```bash
-cp .env.example .env
-docker compose -f compose.yaml up -d --build
-```
+### Prerequisites
 
-Use the dev override for hot reload during local development:
+- Docker and Docker Compose installed
+- `.env` file configured (copy from `.env.example`)
+
+### Development Workflow
+
+Start the dev stack with hot reload:
 
 ```bash
 cp .env.example .env
 docker compose -f compose.dev.yaml up --build
 ```
 
-The production stack runs MySQL, a one-shot database init job, the Flask backend under gunicorn, and the frontend behind nginx. The dev stack keeps Flask and React in watch mode.
+The dev stack includes:
+- **Flask backend** with hot reload on code changes
+- **React frontend** with hot reload on code changes
+- **MySQL 8.0** database with binary logging for Debezium
+- **Apache Kafka + Zookeeper** for event streaming
+- **Debezium Kafka Connect** with outbox pattern for message events
+- **Message metrics consumer** for analytics aggregation
+- **Kafka UI** at http://localhost:8080 to inspect topics/connectors
 
-## Kafka Outbox + Message Load Tracking (Option 2)
+### Production Deployment
 
-The dev stack now includes Apache Kafka, Debezium Kafka Connect, a connector bootstrap job, and a message metrics consumer.
-
-### Services
-
-- `kafka` + `zookeeper`: message broker for event streams
-- `kafka-connect`: Debezium Connect runtime
-- `kafka-connect-init`: registers the MySQL outbox connector on startup
-- `message-metrics-consumer`: consumes `collabconnect.outbox.message.sent.v1` and writes minute-level aggregates
-- `kafka-ui`: inspect topics/connectors at `http://localhost:8080`
-
-### Start stack
+For production deployment without hot reload:
 
 ```bash
 cp .env.example .env
-docker compose -f compose.dev.yaml up --build -d
+docker compose -f compose.yaml up -d --build
 ```
 
-### Seed dummy accounts
+The production stack runs all services with optimized configurations (gunicorn for backend, nginx for frontend).
+
+## Working with the Backend
+
+### Running Tests
+
+```bash
+docker compose -f compose.dev.yaml exec -T backend pytest -q tests/
+```
+
+### Seeding Test Data
 
 ```bash
 docker compose -f compose.dev.yaml exec -T backend \
   python scripts/create_dummy_message_accounts.py --prefix simuser --count 50 --password SimPass1234
 ```
 
-### Run load simulation
+### Running Load Simulation
 
 ```bash
 docker compose -f compose.dev.yaml exec -T backend \
-  python scripts/simulate_message_load.py --base-url http://backend:5001 --prefix simuser --count 50 --password SimPass1234 --total-messages 1000 --workers 10
+  python scripts/simulate_message_load.py \
+    --base-url http://backend:5001 \
+    --prefix simuser --count 50 --password SimPass1234 \
+    --total-messages 1000 --workers 10
 ```
 
-The simulator prints `simulation_run_id`. The backend also forwards this ID using header `X-Simulation-Run-Id`, and it is persisted in outbox event payloads.
+### Analytics Endpoints
 
-### Admin load endpoints
+Once messages are flowing through the system:
 
-- `GET /api/analytics/message-load/summary?lookback_minutes=60`
-- `GET /api/analytics/message-load/senders?lookback_minutes=60&limit=20`
+- **Message load summary**: `GET /api/analytics/message-load/summary?lookback_minutes=60`
+- **Top senders**: `GET /api/analytics/message-load/senders?lookback_minutes=60&limit=20`
 
-### Event topic
+Message events flow through the Kafka outbox pattern into: `collabconnect.outbox.message.sent.v1`
 
-Debezium outbox routes message sent events into:
-
-- `collabconnect.outbox.message.sent.v1`
+## Architecture
 # CollabConnect - Course Project for COS457
 
 CollabConnect is an application that facilitates collaboration and connection between academics and industry professionals. It addresses the gap between wanting or needing a collaborator for a project and finding a suitable collaborator. The app will provide users the opportunity to search a directory of potential collaborators and view attributes of professional peers that make them a good match for the proposed project. A user may also visualize graphs of connections between professionals for better decision-making and understanding.

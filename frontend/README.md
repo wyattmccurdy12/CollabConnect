@@ -1,15 +1,18 @@
 # Collab Connect Frontend
 
-This frontend looks to provide a user friendly experience to help our users to connect with industry professionals
+This frontend provides a user-friendly experience to help users connect with industry professionals.
 
 ## Running the Frontend
 
-Running the frontend for Collab Connect is a very simple process. To start, first open a terminal and cd into 
-the frontend directory. Once here, run `npm install`. This command will automatically download all the neccesary 
-packages to run the frontend. Note, this may take some time. 
+The frontend runs exclusively via Docker Compose. See the [main README](../README.md) for setup instructions.
 
-Once all the packages are downloaded, simply run `npm run start`. This will start the frontend, hosted on 
-http://localhost:3000/. Thats it! Now the frontend for CollabConnect should be up and running. 
+To start development:
+
+```bash
+cd .. && docker compose -f compose.dev.yaml up --build
+```
+
+The frontend will be available at http://localhost:3000/ with hot reload enabled on code changes. 
 
 ## Development Tips
 

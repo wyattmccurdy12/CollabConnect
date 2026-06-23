@@ -2,16 +2,60 @@
 
 This directory contains the backend components of the CollabConnect application.
 
-## Table of Contents
-1. [How to Set Up CollabConnect Backend](#how-to-set-up-collabconnect-backend)  
-2. [MySQL Workbench](#1-mysql-workbench)  
-   - [Installation Steps](#installation-steps)  
-3. [Start the MySQL Server in MySQL Workbench](#2-start-the-mysql-server-in-mysql-workbench)  
-4. [Set up config.ini](#3-set-up-configini)  
-5. [Run Commands](#4-run-commands)  
-6. [Setup Complete!](setup-complete!)
+## Quick Start
 
-## How to Set Up CollabConnect Backend
+The backend runs exclusively via Docker Compose. See the [main README](../README.md) for setup instructions.
+
+## Development
+
+### Key Components
+
+- `app.py`: Flask application entry point and configuration
+- `db_init.py`: Database initialization (runs automatically in Docker)
+- `routes/`: API endpoints organized by entity
+- `utils/`: Helper functions (authorization, email, JWT, logging, validation)
+- `tests/`: Unit tests for routes and concurrency control
+- `sql/`: Database schema, indexes, procedures, and seed data
+- `consumers/`: Kafka message consumption for analytics
+- `scripts/`: Utility scripts (dummy accounts, load simulation)
+
+### Running Tests
+
+```bash
+docker compose -f compose.dev.yaml exec -T backend pytest -q tests/
+```
+
+For specific tests:
+
+```bash
+docker compose -f compose.dev.yaml exec -T backend pytest -q tests/test_messages.py
+docker compose -f compose.dev.yaml exec -T backend pytest -q tests/test_concurrency.py
+```
+
+### Database Initialization
+
+The `db-init` service in Docker Compose automatically initializes the schema on startup. To reinitialize:
+
+```bash
+docker compose -f compose.dev.yaml exec -T backend python db_init.py
+```
+
+### Kafka & Message Analytics
+
+The dev stack includes Kafka, Debezium, and a metrics consumer. To run analytics:
+
+- Seed accounts: `python scripts/create_dummy_message_accounts.py`
+- Run load test: `python scripts/simulate_message_load.py`
+- View Kafka UI: `http://localhost:8080`
+- Metrics endpoints: `/api/analytics/message-load/summary` and `/api/analytics/message-load/senders`
+
+For questions, contact lucas.matheson@maine.edu
+
+---
+
+## Legacy (Do Not Use)
+
+The following sections document the old local development workflow, which has been deprecated in favor of Docker Compose. They are kept for reference only.
 
 ## 1.) MySQL Workbench
 

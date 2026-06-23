@@ -30,7 +30,7 @@ CONFIG=$(cat <<EOF
   "transforms": "outbox",
   "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
   "transforms.outbox.route.by.field": "type",
-  "transforms.outbox.route.topic.replacement": "collabconnect.outbox.${routedByValue}",
+  "transforms.outbox.route.topic.replacement": "collabconnect.outbox.\${routedByValue}",
   "transforms.outbox.table.field.event.id": "id",
   "transforms.outbox.table.field.event.key": "aggregateid",
   "transforms.outbox.table.field.event.payload": "payload",

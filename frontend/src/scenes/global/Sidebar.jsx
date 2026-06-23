@@ -20,6 +20,7 @@ import { Users } from "lucide-react";
 import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined';
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import { useLocation } from "react-router-dom";
 
 const Item = ({ title, to, icon, selected, setSelected }) => {
@@ -58,6 +59,7 @@ const Sidebar = () => {
       "/projects": "Search Projects",
       "/connections": "Manage Connections",
       "/messages": "Messages",
+      "/admin/analytics": "Message Analytics",
       "/": "Dashboard",
     };
 
@@ -227,6 +229,24 @@ const Sidebar = () => {
               title="Messages"
               to="/messages"
               icon={<ForumOutlinedIcon />}
+              selected={selected}
+              setSelected={setSelected}
+            />
+
+            <Typography
+              variant="h6"
+              color={colors.grey[300]}
+              sx={{ 
+                m: "0.9375rem 0 0.3125rem 1.25rem",
+                display: isCollapsed ? "none" : "block"
+              }}
+            >
+              Admin
+            </Typography>
+            <Item
+              title="Message Analytics"
+              to="/admin/analytics"
+              icon={<AssignmentOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
             />
